@@ -1,8 +1,6 @@
 {
   "firestore": {
-    "database": "(default)",
-    "location": "nam5",
-    "rules": "rules_version = '2';",
+    "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
   "hosting": {

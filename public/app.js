@@ -1,3 +1,14 @@
+// 🛡️ HTML 转义，防止用户内容破坏页面结构
+function escHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 const firebaseConfig = {
     apiKey: "AIzaSyA73oNDKOPBW9TsfxS9z3D1zoHnTReSY4I",
     authDomain: "new-social-media-49e1b.firebaseapp.com",
@@ -504,7 +515,7 @@ auth.onAuthStateChanged((user) => {
 
         // 🔧 实时修复：如果帖子的 username/emoji 与用户表不一致，静默修正
         const syncUser = userCacheForSync[post.uid];
-        if (syncUser) {
+        if (syncUser && syncUser.username) {  // 守卫：用户文档必须有有效的 username，否则跳过
             const nameOk = post.username === syncUser.username;
             const emojiOk = (post.emoji || "👤") === syncUser.emoji;
             if (!nameOk || !emojiOk) {
@@ -593,7 +604,7 @@ auth.onAuthStateChanged((user) => {
                     ? `<span class="comment-reply-btn" onclick="toggleReplyBox('${postId}', ${index})">Reply</span>`
                     : "";
                 return `<div class='single-comment comment-reply${aiClass}'>
-                            <div class="comment-text"><b>${r.username}:</b> ${r.comment}</div>
+                            <div class="comment-text"><b>${escHtml(r.username)}:</b> ${escHtml(r.comment)}</div>
                             ${(deleteBtn || replyBtn) ? `<div class="comment-actions">${deleteBtn}${replyBtn}</div>` : ""}
                         </div>`;
             }).join("");
@@ -604,7 +615,7 @@ auth.onAuthStateChanged((user) => {
                        <div class="comment-text"><b>${typingUsername}:</b> <span class="typing-dots">▌▌▌</span></div>
                    </div>` : "";
             return `<div class='single-comment'>
-                        <div class="comment-text"><b>${c.id}:</b> ${c.comment}</div>
+                        <div class="comment-text"><b>${escHtml(c.id)}:</b> ${escHtml(c.comment)}</div>
                         <div class="comment-actions">
                             <span class="comment-like-btn" onclick="toggleCommentLike('${postId}', ${index})">${heartIcon} [${likesCount}]</span>
                             <span class="comment-reply-btn" onclick="toggleReplyBox('${postId}', ${index})">Reply</span>
@@ -623,11 +634,11 @@ auth.onAuthStateChanged((user) => {
         container.innerHTML += `
         <div class="post-item">
             <div class="post-author">
-                <a href="profile.html?uid=${post.uid}">${post.emoji || '👤'} ${post.username}</a>
+                <a href="profile.html?uid=${post.uid}">${escHtml(post.emoji || '👤')} ${escHtml(post.username)}</a>
             </div>
             <span class="post-time">${timeStr}</span>
             ${imgTag}
-            <div class="post-content">📝 ${post.content}</div>
+            <div class="post-content">📝 ${escHtml(post.content)}</div>
             <div class="post-stats">❤️: ${post.likes} &nbsp;&nbsp; 💬: ${post.commentCount}</div>
             <details ${isCurrentlyOpen ? 'open' : ''} ontoggle="window.recordToggle('${postId}', this.open)">
                 <summary>💬 View Responses</summary>

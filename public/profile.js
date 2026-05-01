@@ -1,4 +1,15 @@
-const firebaseConfig = { 
+// 🛡️ HTML 转义，防止用户内容破坏页面结构
+function escHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+const firebaseConfig = {
   apiKey: "AIzaSyA73oNDKOPBW9TsfxS9z3D1zoHnTReSY4I",
   authDomain: "new-social-media-49e1b.firebaseapp.com",
   databaseURL: "https://new-social-media-49e1b-default-rtdb.firebaseio.com",
@@ -187,7 +198,7 @@ function loadUserPosts() {
             const myUid = auth.currentUser ? auth.currentUser.uid : null;
 
             // 🔧 实时修复：帖子的 username/emoji 与用户表不一致时静默修正
-            if (correctProfile) {
+            if (correctProfile && correctProfile.username) {  // 守卫：用户文档必须有有效的 username
                 const nameOk = post.username === correctProfile.username;
                 const emojiOk = (post.emoji || "👤") === correctProfile.emoji;
                 if (!nameOk || !emojiOk) {
@@ -260,7 +271,7 @@ function loadUserPosts() {
                         ? `<span class="comment-reply-btn" onclick="toggleReplyBox('${postId}', ${index})">Reply</span>`
                         : "";
                     return `<div class='single-comment comment-reply${aiClass}'>
-                                <div class="comment-text"><b>${r.username}:</b> ${r.comment}</div>
+                                <div class="comment-text"><b>${escHtml(r.username)}:</b> ${escHtml(r.comment)}</div>
                                 ${(deleteBtn || replyBtn) ? `<div class="comment-actions">${deleteBtn}${replyBtn}</div>` : ""}
                             </div>`;
                 }).join("");
@@ -270,7 +281,7 @@ function loadUserPosts() {
                            <div class="comment-text"><b>${typingUsername}:</b> <span class="typing-dots">▌▌▌</span></div>
                        </div>` : "";
                 return `<div class='single-comment'>
-                            <div class="comment-text"><b>${c.id}:</b> ${c.comment}</div>
+                            <div class="comment-text"><b>${escHtml(c.id)}:</b> ${escHtml(c.comment)}</div>
                             <div class="comment-actions">
                                 <span class="comment-like-btn" onclick="toggleCommentLike('${postId}', ${index})">${hasLiked ? "❤️" : "♡"} [${likesCount}]</span>
                                 <span class="comment-reply-btn" onclick="toggleReplyBox('${postId}', ${index})">Reply</span>
@@ -289,10 +300,10 @@ function loadUserPosts() {
 
             container.innerHTML += `
             <div class="post-item" style="background:#f9f9f9; padding:15px; border:2px inset #c0c0c0;">
-                <div class="post-author">${post.emoji || '👤'} ${post.username}</div>
+                <div class="post-author">${escHtml(post.emoji || '👤')} ${escHtml(post.username)}</div>
                 <span class="post-time">${timeStr}</span>
                 ${imgTag}
-                <div class="post-content">📝 ${post.content}</div>
+                <div class="post-content">📝 ${escHtml(post.content)}</div>
                 <div class="post-stats">❤️: ${post.likes} &nbsp;&nbsp; 💬: ${post.commentCount} ${deleteBtnHTML}</div>
                 <details ${isCurrentlyOpen ? 'open' : ''} ontoggle="window.recordToggleProfile('${postId}', this.open)">
                     <summary>💬 View Responses</summary>
