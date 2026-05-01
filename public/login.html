@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RennOS_05 - System Login</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #008080;
+            font-family: 'MS Sans Serif', Tahoma, Geneva, sans-serif;
+        }
+        .login-window {
+            background-color: #c0c0c0;
+            border-top: 2px solid #ffffff;
+            border-left: 2px solid #ffffff;
+            border-bottom: 2px solid #000000;
+            border-right: 2px solid #000000;
+            width: 420px;
+            box-shadow: 2px 2px 10px rgba(0,0,0,0.5);
+        }
+        .login-title-bar {
+            background: linear-gradient(90deg, #000080, #1084d0);
+            color: white;
+            padding: 3px 5px;
+            font-weight: bold;
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .login-title-bar .close-btn {
+            background: #c0c0c0;
+            color: black;
+            border-top: 1px solid #fff;
+            border-left: 1px solid #fff;
+            border-bottom: 1px solid #000;
+            border-right: 1px solid #000;
+            padding: 0 4px;
+            cursor: pointer;
+            font-size: 12px;
+            text-decoration: none;
+        }
+        .login-body {
+            padding: 20px;
+        }
+        .login-logo {
+            color: #000080;
+            font-size: 32px;
+            font-weight: bold;
+            text-align: center;
+            font-family: 'Courier New', Courier, monospace;
+            letter-spacing: 2px;
+            text-shadow: 2px 2px #c0c0c0;
+            margin-bottom: 5px;
+        }
+        .login-subtitle {
+            text-align: center;
+            color: #666;
+            font-size: 12px;
+            margin-bottom: 20px;
+            font-family: 'MS Sans Serif';
+        }
+
+        /* 主菜单三个按钮 */
+        .menu-view { text-align: center; }
+        .menu-btn {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            font-weight: bold;
+            font-size: 14px;
+            font-family: 'MS Sans Serif';
+            cursor: pointer;
+            background-color: #c0c0c0;
+            border-top: 2px solid #fff;
+            border-left: 2px solid #fff;
+            border-bottom: 2px solid #000;
+            border-right: 2px solid #000;
+            box-sizing: border-box;
+        }
+        .menu-btn:active {
+            border-top: 2px solid #000;
+            border-left: 2px solid #000;
+            border-bottom: 2px solid #fff;
+            border-right: 2px solid #fff;
+        }
+        .menu-btn.google-btn {
+            background-color: #ffffff;
+            color: #000;
+        }
+        .menu-btn.email-btn {
+            background-color: #000080;
+            color: #ffffff;
+        }
+        .menu-btn.register-btn {
+            background-color: #c0c0c0;
+            color: #000;
+        }
+        .menu-divider {
+            border: none;
+            border-top: 1px solid #808080;
+            border-bottom: 1px solid #ffffff;
+            margin: 15px 0;
+        }
+
+        /* 表单视图 */
+        .form-view { display: none; }
+        .form-view h3 {
+            color: #000080;
+            margin-top: 0;
+            font-size: 15px;
+            border-bottom: 1px solid #808080;
+            padding-bottom: 5px;
+        }
+        .form-group {
+            margin-bottom: 12px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-family: 'MS Sans Serif';
+            margin-bottom: 3px;
+            color: #000;
+        }
+        .form-group input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 6px;
+            border: 2px inset #c0c0c0;
+            font-family: 'MS Sans Serif';
+            font-size: 13px;
+        }
+        .form-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 15px;
+        }
+        .form-actions button {
+            flex: 1;
+            padding: 8px;
+            font-weight: bold;
+            font-size: 13px;
+        }
+        .btn-primary {
+            background-color: #000080 !important;
+            color: white !important;
+        }
+        .btn-secondary {
+            background-color: #c0c0c0;
+        }
+        .forgot-link {
+            display: block;
+            text-align: center;
+            margin-top: 12px;
+            font-size: 12px;
+            color: #000080;
+            text-decoration: underline;
+            cursor: pointer;
+            font-family: 'MS Sans Serif';
+        }
+        .forgot-link:hover {
+            color: #0000ff;
+        }
+
+        /* 状态提示 */
+        .status-bar {
+            background: #e0e0e0;
+            border: 1px inset #c0c0c0;
+            padding: 3px 6px;
+            font-size: 11px;
+            font-family: 'MS Sans Serif';
+            color: #333;
+            margin-top: 15px;
+        }
+        .status-bar.error { color: #d10000; }
+        .status-bar.success { color: #008000; }
+
+        /* Loading */
+        .login-loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        .login-loading.active { display: block; }
+        .login-loading img { width: 80px; }
+    </style>
+</head>
+<body>
+
+<div class="login-window">
+    <div class="login-title-bar">
+        <span>RennOS_05 - System Authorization</span>
+        <a href="index.html" class="close-btn">X</a>
+    </div>
+    <div class="login-body">
+        <div class="login-logo">RennOS_05</div>
+        <div class="login-subtitle">▸ Social Network Terminal v0.5</div>
+
+        <!-- 主菜单 -->
+        <div id="menu-view" class="menu-view">
+            <button class="menu-btn email-btn" onclick="showView('login-form')">
+                ✉ Email Login
+            </button>
+            <button class="menu-btn google-btn" onclick="loginWithGoogle()">
+                ◉ Google Login
+            </button>
+            <hr class="menu-divider">
+            <button class="menu-btn register-btn" onclick="showView('register-form')">
+                ＋ Register New Account
+            </button>
+        </div>
+
+        <!-- 邮箱登录表单 -->
+        <div id="login-form" class="form-view">
+            <h3>✉ Email Login</h3>
+            <div class="form-group">
+                <label>E-Mail Address:</label>
+                <input type="email" id="login-email" placeholder="user@example.com">
+            </div>
+            <div class="form-group">
+                <label>Password:</label>
+                <input type="password" id="login-password" placeholder="Enter password">
+            </div>
+            <div class="form-actions">
+                <button class="btn-secondary" onclick="showView('menu-view')">◂ Back</button>
+                <button class="btn-primary" onclick="doLogin()">Login ▸</button>
+            </div>
+            <span class="forgot-link" onclick="doResetPassword('login-email')">Forgot Password?</span>
+        </div>
+
+        <!-- 注册表单 -->
+        <div id="register-form" class="form-view">
+            <h3>＋ Register New Account</h3>
+            <div class="form-group">
+                <label>E-Mail Address:</label>
+                <input type="email" id="reg-email" placeholder="user@example.com">
+            </div>
+            <div class="form-group">
+                <label>Password (min 6 characters):</label>
+                <input type="password" id="reg-password" placeholder="Create a password">
+            </div>
+            <div class="form-group">
+                <label>Confirm Password:</label>
+                <input type="password" id="reg-password-confirm" placeholder="Re-enter password">
+            </div>
+            <div class="form-actions">
+                <button class="btn-secondary" onclick="showView('menu-view')">◂ Back</button>
+                <button class="btn-primary" onclick="doRegister()">Register ▸</button>
+            </div>
+            <span class="forgot-link" onclick="doResetPassword('reg-email')">Already have an account? Forgot Password?</span>
+        </div>
+
+        <!-- Loading -->
+        <div id="login-loading" class="login-loading">
+            <img src="loading.gif" alt="Loading...">
+            <p style="font-family:'MS Sans Serif'; font-size:12px; color:#666;">Authenticating...</p>
+        </div>
+
+        <!-- 状态栏 -->
+        <div id="status-bar" class="status-bar">Ready.</div>
+    </div>
+</div>
+
+<script>
+const firebaseConfig = {
+    apiKey: "AIzaSyA73oNDKOPBW9TsfxS9z3D1zoHnTReSY4I",
+    authDomain: "new-social-media-49e1b.firebaseapp.com",
+    databaseURL: "https://new-social-media-49e1b-default-rtdb.firebaseio.com",
+    projectId: "new-social-media-49e1b",
+    storageBucket: "new-social-media-49e1b.firebasestorage.app",
+    messagingSenderId: "156229387049",
+    appId: "1:156229387049:web:02efe89d03acc69c9b2d38",
+    measurementId: "G-5TQVHWZQLP"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+// 如果已经登录，直接跳转首页
+auth.onAuthStateChanged((user) => {
+    if (user) {
+        if (user.providerData[0].providerId === "password" && !user.emailVerified) {
+            // 邮箱未验证，不跳转
+            auth.signOut();
+            setStatus("⚠️ Email not verified. Check your inbox and verify first, then log in again.", "error");
+            showView("menu-view");
+            return;
+        }
+        // 已登录且已验证 → 跳转首页
+        window.location.href = "index.html";
+    }
+});
+
+function showView(viewId) {
+    document.querySelectorAll('.menu-view, .form-view').forEach(el => el.style.display = 'none');
+    document.getElementById('login-loading').classList.remove('active');
+    document.getElementById(viewId).style.display = viewId === 'menu-view' ? 'block' : 'block';
+    setStatus("Ready.");
+}
+
+function setStatus(msg, type) {
+    const bar = document.getElementById("status-bar");
+    bar.textContent = msg;
+    bar.className = "status-bar" + (type ? " " + type : "");
+}
+
+function showLoading() {
+    document.querySelectorAll('.menu-view, .form-view').forEach(el => el.style.display = 'none');
+    document.getElementById('login-loading').classList.add('active');
+}
+
+function hideLoading() {
+    document.getElementById('login-loading').classList.remove('active');
+}
+
+// ===== 邮箱登录 =====
+async function doLogin() {
+    const email = document.getElementById("login-email").value.trim();
+    const password = document.getElementById("login-password").value.trim();
+
+    if (!email || !password) {
+        return setStatus("⚠️ Email and Password cannot be empty.", "error");
+    }
+
+    showLoading();
+    setStatus("Logging in...");
+
+    try {
+        await auth.signInWithEmailAndPassword(email, password);
+        setStatus("✅ Login successful! Redirecting...", "success");
+        // onAuthStateChanged 会处理跳转
+    } catch (error) {
+        hideLoading();
+        showView("login-form");
+        if (error.code === "auth/user-not-found" || error.code === "auth/invalid-credential") {
+            setStatus("⚠️ Incorrect email or password. Check your credentials or register a new account.", "error");
+        } else if (error.code === "auth/too-many-requests") {
+            setStatus("⚠️ Too many attempts. Please try again later.", "error");
+        } else {
+            setStatus("⚠️ " + error.message, "error");
+        }
+    }
+}
+
+// ===== 注册新账号 =====
+async function doRegister() {
+    const email = document.getElementById("reg-email").value.trim();
+    const password = document.getElementById("reg-password").value.trim();
+    const confirm = document.getElementById("reg-password-confirm").value.trim();
+
+    if (!email || !password) {
+        return setStatus("⚠️ Email and Password cannot be empty.", "error");
+    }
+    if (password !== confirm) {
+        return setStatus("⚠️ Passwords do not match.", "error");
+    }
+    if (password.length < 6) {
+        return setStatus("⚠️ Password must be at least 6 characters.", "error");
+    }
+
+    showLoading();
+    setStatus("Creating account...");
+
+    try {
+        const cred = await auth.createUserWithEmailAndPassword(email, password);
+        await cred.user.sendEmailVerification();
+        await auth.signOut();
+        hideLoading();
+        showView("menu-view");
+        setStatus("✅ Registration successful! Verification email sent to " + email + ". Please verify before logging in.", "success");
+    } catch (error) {
+        hideLoading();
+        showView("register-form");
+        if (error.code === "auth/email-already-in-use") {
+            setStatus("⚠️ This email is already registered. Try logging in instead.", "error");
+        } else if (error.code === "auth/weak-password") {
+            setStatus("⚠️ Password is too weak. Use at least 6 characters.", "error");
+        } else {
+            setStatus("⚠️ " + error.message, "error");
+        }
+    }
+}
+
+// ===== Google 登录 =====
+async function loginWithGoogle() {
+    showLoading();
+    setStatus("Connecting to Google...");
+    try {
+        await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
+        setStatus("✅ Google login successful! Redirecting...", "success");
+    } catch (error) {
+        hideLoading();
+        showView("menu-view");
+        if (error.code === "auth/popup-closed-by-user") {
+            setStatus("Login cancelled.", "");
+        } else {
+            setStatus("⚠️ " + error.message, "error");
+        }
+    }
+}
+
+// ===== 找回密码 =====
+async function doResetPassword(emailFieldId) {
+    const email = document.getElementById(emailFieldId).value.trim();
+    if (!email) {
+        return setStatus("⚠️ Enter your email address first, then click 'Forgot Password'.", "error");
+    }
+    try {
+        await auth.sendPasswordResetEmail(email);
+        setStatus("✅ If this email is registered, a reset link has been sent to " + email + ". Check your inbox and spam folder. If you don't receive it within a few minutes, you may need to register a new account.", "success");
+    } catch (error) {
+        setStatus("⚠️ " + error.message, "error");
+    }
+}
+
+// 回车键支持
+document.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+        if (document.getElementById("login-form").style.display !== "none" &&
+            document.getElementById("login-form").style.display !== "") {
+            doLogin();
+        } else if (document.getElementById("register-form").style.display !== "none" &&
+                   document.getElementById("register-form").style.display !== "") {
+            doRegister();
+        }
+    }
+});
+</script>
+</body>
+</html>

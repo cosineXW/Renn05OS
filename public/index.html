@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RennOS_05</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
+</head>
+<body>
+
+<div id="loading-div">
+    <img src="loading.gif" alt="Loading..." style="width: 200px;">
+</div>
+<div id="fan-toast" class="toast-notification"></div>
+
+<div class="browser-window">
+    <div class="title-bar">
+        <span>RennOS_05 Explorer</span>
+        <div class="title-bar-buttons"><span>_</span><span>□</span><span>X</span></div>
+    </div>
+    
+    <div class="web-content">
+        <div class="top-bar">
+            <div class="top-bar-inner">
+                <div class="logo" onclick="document.querySelector('.web-content').scrollTo({top:0,behavior:'smooth'})">RennOS_05</div>
+                <div class="top-bar-right">
+                    <span id="auth-section">
+                        <button class="login-btn" onclick="window.location.href='login.html'">▸ Login</button>
+                    </span>
+                    <span id="user-dashboard" style="display:none;">
+                        <b><a id="my-profile-link" class="fake-link"><span id="current-username"></span></a></b>
+                        &nbsp;[<span class="fake-link" onclick="logout()">Log out</span>]
+                    </span>
+                </div
+            </div>
+        </div>
+
+        <div class="main-layout">
+            <div class="left-col">
+                <div id="post-form-container" style="display:none; background-color: #e0e0e0; padding: 15px; border: 2px outset #ffffff; margin-bottom: 20px;">
+                    <!--<h3 style="margin-top:0; color:#000080;">Initialize Sequence</h3>-->
+                    
+                    <div class="retro-input-wrapper">
+                        <textarea id="post-content" class="retro-textarea" rows="3" placeholder="What is the current status?"></textarea>
+                        <button id="plus-minus-btn" class="retro-plus-btn" onclick="triggerImageUpload()" title="Add / Remove Image">+</button>
+                    </div>
+
+                    <input type="file" id="image-input" accept="image/*" style="display:none;" onchange="handleImagePreview(event)">
+                    
+                    <img id="image-preview" style="display:none; max-height:150px; border:2px inset #c0c0c0; margin-bottom:10px;">
+                    <button onclick="submitPost()" class="full-width-btn" style="background:#000080; color:white;">Upload</button>
+                </div>
+
+                <div class="section-title">Data Stream // Latest 20</div>
+                <div id="posts-container"><i>Loading database...</i></div>
+            </div>
+
+            <div class="right-col">
+                <div class="sidebar-box">
+                    <h4 class="sidebar-title">🔍 Radar</h4>
+                    <input type="text" id="search-input" placeholder="Search ID..." style="width:100%; box-sizing:border-box; margin-bottom:5px;" onkeyup="searchUsers()">
+                    <div id="search-results" style="font-size: 13px;"></div>
+                </div>
+
+                <div class="sidebar-box">
+                    <h4 class="sidebar-title">🔥 Most Likes</h4>
+                    <div id="leaderboard-likes"><i>Scanning...</i></div>
+                </div>
+
+                <div class="sidebar-box">
+                    <h4 class="sidebar-title">💬 Most Comments</h4>
+                    <div id="leaderboard-comments"><i>Scanning...</i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="algorithms.js?v=8.0"></script>
+<script src="app.js?v=8.0"></script>
+</body>
+</html>

@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>RENN_OS Admin - Profile Sync Checker</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body { background: #008080; margin: 0; padding: 20px; font-family: 'MS Sans Serif', Tahoma, sans-serif; }
+        .admin-window {
+            max-width: 800px; margin: 20px auto; background: #c0c0c0;
+            border: 2px solid; border-color: #fff #808080 #808080 #fff;
+            box-shadow: 2px 2px 0 #000;
+        }
+        .admin-title {
+            background: linear-gradient(90deg, #000080, #1084d0);
+            color: #fff; padding: 4px 8px; font-weight: bold; font-size: 14px;
+        }
+        .admin-body { padding: 16px; }
+        .btn-95 {
+            background: #c0c0c0; border: 2px solid; border-color: #fff #808080 #808080 #fff;
+            padding: 4px 16px; font-family: inherit; font-size: 13px; cursor: pointer;
+            margin: 4px;
+        }
+        .btn-95:active { border-color: #808080 #fff #fff #808080; }
+        .btn-danger { background: #ffcccc; }
+        .log-area {
+            background: #000; color: #0f0; font-family: 'Courier New', monospace;
+            font-size: 12px; padding: 10px; min-height: 200px; max-height: 500px;
+            overflow-y: auto; border: 2px inset #808080; margin-top: 10px;
+            white-space: pre-wrap; word-break: break-all;
+        }
+        .stat-box {
+            display: inline-block; background: #fff; border: 2px inset #808080;
+            padding: 6px 14px; margin: 4px; font-size: 13px;
+        }
+        .stat-box b { color: #000080; }
+        .status-bar {
+            background: #c0c0c0; border-top: 2px solid #808080;
+            padding: 3px 8px; font-size: 12px; color: #333;
+        }
+        #auth-notice { display: none; background: #ffffcc; border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="admin-window">
+    <div class="admin-title">⚙️ RENN_OS Admin - Profile Sync Checker</div>
+    <div class="admin-body">
+
+        <div id="auth-notice">
+            ⚠️ 你需要先登录才能使用管理工具。
+            <button class="btn-95" onclick="window.location.href='login.html'">前往登录</button>
+        </div>
+
+        <p style="font-size:13px; color:#333;">
+            扫描所有用户和帖子，检测 username / emoji 不一致的情况并修复。<br>
+            适用于：用户改了 ID / emoji 后，主页帖子仍显示旧的 "Guest" 或默认 👤 的问题。
+        </p>
+
+        <div>
+            <button class="btn-95" id="btn-scan" onclick="runScan()">🔍 扫描检查</button>
+            <button class="btn-95 btn-danger" id="btn-fix" onclick="runFix()" disabled>🔧 一键修复全部</button>
+            <button class="btn-95" onclick="clearLog()">🗑️ 清空日志</button>
+        </div>
+
+        <div style="margin-top: 10px;">
+            <span class="stat-box">用户总数: <b id="stat-users">-</b></span>
+            <span class="stat-box">帖子总数: <b id="stat-posts">-</b></span>
+            <span class="stat-box">不一致: <b id="stat-mismatches" style="color:red;">-</b></span>
+            <span class="stat-box">已修复: <b id="stat-fixed" style="color:green;">-</b></span>
+        </div>
+
+        <div class="log-area" id="log-area">等待操作...</div>
+    </div>
+    <div class="status-bar" id="status-bar">就绪</div>
+</div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+
+<script>
+const firebaseConfig = {
+    apiKey: "AIzaSyA73oNDKOPBW9TsfxS9z3D1zoHnTReSY4I",
+    authDomain: "new-social-media-49e1b.firebaseapp.com",
+    databaseURL: "https://new-social-media-49e1b-default-rtdb.firebaseio.com",
+    projectId: "new-social-media-49e1b",
+    storageBucket: "new-social-media-49e1b.firebasestorage.app",
+    messagingSenderId: "156229387049",
+    appId: "1:156229387049:web:02efe89d03acc69c9b2d38",
+    measurementId: "G-5TQVHWZQLP"
+};
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+
+// 全局状态
+let mismatchList = []; // { postId, postUid, oldUsername, oldEmoji, correctUsername, correctEmoji }
+
+auth.onAuthStateChanged(user => {
+    if (!user) {
+        document.getElementById("auth-notice").style.display = "block";
+        document.getElementById("btn-scan").disabled = true;
+    } else {
+        document.getElementById("auth-notice").style.display = "none";
+        document.getElementById("btn-scan").disabled = false;
+        log(`✅ 已登录: ${user.email}`);
+    }
+});
+
+function log(msg) {
+    const area = document.getElementById("log-area");
+    const time = new Date().toLocaleTimeString();
+    area.textContent += `\n[${time}] ${msg}`;
+    area.scrollTop = area.scrollHeight;
+}
+
+function clearLog() {
+    document.getElementById("log-area").textContent = "日志已清空。";
+    document.getElementById("stat-users").textContent = "-";
+    document.getElementById("stat-posts").textContent = "-";
+    document.getElementById("stat-mismatches").textContent = "-";
+    document.getElementById("stat-fixed").textContent = "-";
+    document.getElementById("btn-fix").disabled = true;
+    mismatchList = [];
+}
+
+function setStatus(msg) {
+    document.getElementById("status-bar").textContent = msg;
+}
+
+// ==================== 扫描检查 ====================
+async function runScan() {
+    mismatchList = [];
+    document.getElementById("btn-scan").disabled = true;
+    document.getElementById("btn-fix").disabled = true;
+    setStatus("正在扫描...");
+    log("========== 开始扫描 ==========");
+
+    try {
+        // 1. 读取所有用户
+        log("📂 加载用户列表...");
+        const usersSnap = await db.collection("users").get();
+        const userMap = {}; // uid -> { username, emoji }
+        usersSnap.forEach(doc => {
+            userMap[doc.id] = {
+                username: doc.data().username,
+                emoji: doc.data().emoji || "👤"
+            };
+        });
+        const userCount = Object.keys(userMap).length;
+        document.getElementById("stat-users").textContent = userCount;
+        log(`👥 找到 ${userCount} 个用户`);
+
+        // 2. 读取所有帖子
+        log("📂 加载帖子列表...");
+        const postsSnap = await db.collection("posts").get();
+        const postCount = postsSnap.size;
+        document.getElementById("stat-posts").textContent = postCount;
+        log(`📝 找到 ${postCount} 条帖子`);
+
+        // 3. 逐一比对
+        log("🔍 开始比对...");
+        let checked = 0;
+        postsSnap.forEach(doc => {
+            const post = doc.data();
+            const postId = doc.id;
+            const user = userMap[post.uid];
+            checked++;
+
+            if (!user) {
+                log(`⚠️ 帖子 ${postId} 的用户 ${post.uid} 不存在于 users 表（孤儿帖子）`);
+                return;
+            }
+
+            const usernameMismatch = post.username !== user.username;
+            const emojiMismatch = (post.emoji || "👤") !== user.emoji;
+
+            if (usernameMismatch || emojiMismatch) {
+                mismatchList.push({
+                    postId,
+                    postUid: post.uid,
+                    oldUsername: post.username,
+                    oldEmoji: post.emoji || "👤",
+                    correctUsername: user.username,
+                    correctEmoji: user.emoji
+                });
+                log(`❌ 不一致 | 帖子: ${postId.substring(0, 8)}...`
+                    + ` | 帖子显示: [${post.emoji || "👤"} ${post.username}]`
+                    + ` | 应为: [${user.emoji} ${user.username}]`);
+            }
+        });
+
+        document.getElementById("stat-mismatches").textContent = mismatchList.length;
+
+        if (mismatchList.length === 0) {
+            log("✅ 全部一致，没有发现问题！");
+            setStatus("扫描完成 - 无问题");
+        } else {
+            log(`\n⚠️ 发现 ${mismatchList.length} 条不一致记录，可点击"一键修复全部"进行修复。`);
+            setStatus(`扫描完成 - 发现 ${mismatchList.length} 条不一致`);
+            document.getElementById("btn-fix").disabled = false;
+        }
+    } catch (e) {
+        log(`❌ 扫描失败: ${e.message}`);
+        setStatus("扫描失败");
+        console.error(e);
+    }
+
+    document.getElementById("btn-scan").disabled = false;
+}
+
+// ==================== 一键修复 ====================
+async function runFix() {
+    if (mismatchList.length === 0) { log("没有需要修复的数据。"); return; }
+
+    document.getElementById("btn-fix").disabled = true;
+    document.getElementById("btn-scan").disabled = true;
+    setStatus("正在修复...");
+    log("\n========== 开始修复 ==========");
+
+    let fixed = 0;
+    let failed = 0;
+
+    // Firestore batch 限制 500 次写入，所以分批处理
+    const BATCH_SIZE = 400;
+    for (let i = 0; i < mismatchList.length; i += BATCH_SIZE) {
+        const chunk = mismatchList.slice(i, i + BATCH_SIZE);
+        const batch = db.batch();
+
+        chunk.forEach(item => {
+            const ref = db.collection("posts").doc(item.postId);
+            batch.update(ref, {
+                username: item.correctUsername,
+                emoji: item.correctEmoji
+            });
+        });
+
+        try {
+            await batch.commit();
+            fixed += chunk.length;
+            log(`✅ 修复批次 ${Math.floor(i / BATCH_SIZE) + 1}: 成功修复 ${chunk.length} 条`);
+        } catch (e) {
+            failed += chunk.length;
+            log(`❌ 修复批次 ${Math.floor(i / BATCH_SIZE) + 1} 失败: ${e.message}`);
+            console.error(e);
+        }
+
+        document.getElementById("stat-fixed").textContent = fixed;
+    }
+
+    log(`\n========== 修复完成 ==========`);
+    log(`✅ 成功: ${fixed} 条 | ❌ 失败: ${failed} 条`);
+    setStatus(`修复完成 - 成功 ${fixed}, 失败 ${failed}`);
+
+    mismatchList = [];
+    document.getElementById("btn-scan").disabled = false;
+}
+</script>
+
+</body>
+</html>

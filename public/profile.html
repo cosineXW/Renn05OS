@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Profile</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@1/index.js"></script>
+</head>
+<body>
+
+<div id="loading-div">
+    <img src="loading.gif" alt="Loading..." style="width: 200px;">
+</div>
+
+<div class="browser-window">
+    <div class="title-bar">
+        <span>Profile Explorer</span>
+        <div class="title-bar-buttons"><span>_</span><span>□</span><span>X</span></div>
+    </div>
+    <div class="menu-bar">
+        <span class="fake-link" onclick="window.location.href='index.html'">⬅ Back to Home</span>
+    </div>
+
+    <div class="web-content">
+        <div class="profile-header">
+            <h2 class="profile-title" id="profile-title-text">👤 Scanning...</h2>
+            
+            <div id="edit-profile-section" style="display:none; margin-bottom:15px; background:#c0c0c0; color:black; padding:10px; border:2px inset #fff; position: relative;">
+                <b>Profile Settings:</b><br><br>
+                
+                <span id="emoji-preview" style="font-size: 20px; vertical-align: middle; margin-right: 5px;">👤</span>
+                <button onclick="toggleEmojiPicker()" style="margin-right: 15px;">😀 Pick Emoji</button>
+                
+                <div id="emoji-picker-container" style="display:none; position: absolute; top: 70px; left: 10px; z-index: 1000; box-shadow: 2px 2px 10px rgba(0,0,0,0.5);">
+                    <emoji-picker></emoji-picker>
+                </div>
+
+                <input type="text" id="custom-username" placeholder="Enter new ID..." style="width: 150px;">
+                <button onclick="updateProfile()">Update Profile</button>
+                <span id="update-msg" style="color:#d10000; font-size:12px; margin-left:10px;"></span>
+            </div>
+
+            <div class="stats-board">
+                <div class="stat-box">Total Likes<span class="stat-number" id="total-likes">0</span></div>
+                <div class="stat-box" style="border-left: 2px inset #fff;">Total Comments<span class="stat-number" id="total-comments">0</span></div>
+            </div>
+        </div>
+
+        <div class="section-title">Archived Posts</div>
+        <div id="user-posts" style="margin-top:20px;">
+            <i>Retrieving database records...</i>
+        </div>
+    </div>
+</div>
+
+<script src="profile.js?v=8.0"></script>
+</body>
+</html>
